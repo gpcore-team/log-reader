@@ -358,17 +358,23 @@ def transform_filename(basename, cfg):
     result  = ft.get("result")
     if not pattern or not result:
         return basename
+
     try:
         rx = re.compile(pattern)
-    except re.error:
+    except re.error as exc:
+        print(f"[transform] regex compile error: {exc}", file=sys.stderr)
         return basename
+
     m = rx.search(basename)
     if not m:
         return basename
-    try:
-        return result.format(*m.groups())
-    except (IndexError, KeyError):
-        return basename
+
+    # Подставляем группы по номерам {1}, {2}, ... с сохранением явных ошибок.
+    result_str = result
+    for idx, val in enumerate(m.groups(), start=1):
+        result_str = result_str.replace(f"{{{idx}}}", val if val is not None else "")
+
+    return result_str
 
 
 # ──────────────────────────────────────────────────────────────────────────────
