@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  GPCORE Log Reader — example profile
+#
+#  Copy this file to profiles/<your-profile>.toml and adjust.
+#  All paths are relative to /opt/log_reader/ unless they start with /.
+#  The {site} placeholder is expanded in path templates.
+#
+#  File: profiles/example.toml
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+[profile]
+
+# ─── Identity ──────────────────────────────────────────────────────────────
+# Displayed in --list output and cron log header.
+name        = "Example profile"
+description = "Example downloads tracking"
+# Site domain. Replaces {site} in path templates below.
+site        = "example.com"
+
+
+# ─── Input ─────────────────────────────────────────────────────────────────
+# Caddy JSON access log. JSON-lines format: one record per line.
+input_log = "/var/log/caddy/access.log"
+
+
+# ─── Filter ────────────────────────────────────────────────────────────────
+# Keywords: record is processed if any of these substrings appears
+# in request.uri. Case-sensitive.
+keywords = ["example-file.zip"]
+
+# IPs to skip entirely (no logs, no stats, no bot check).
+# Useful for ignoring your own debug requests.
+ignore_ips = []
+
+
+# ─── Output files ──────────────────────────────────────────────────────────
+# log/   — all .log files
+# state/ — state files (offset, stats, bot cache)
+
+# Main filtered log.
+output_log   = "log/example_dl.log"
+
+# Reading position of input_log (byte offset).
+offset_file  = "state/example_filter_offset"
+
+# Cumulative counters (JSON).
+stats_file   = "state/example_filter_stats.json"
+
+# Verified bots log. Empty string "" disables bot detection entirely.
+bots_log     = "log/bots_{site}.log"
+
+# Bot verification cache (IP → {bot, name, ts}).
+bots_cache   = "state/example_bots_cache.json"
+
+# Redirect stdout/stderr here. Empty string "" sends output to terminal.
+cron_log     = "log/example_cron.log"
+
+
+# ─── Output format ─────────────────────────────────────────────────────────
+# number_lines = true  → prepend sequential line numbers (00001, 00002, …).
+# number_lines = false → no line numbers.
+number_lines = false
+
+
+# ─── Output line format ────────────────────────────────────────────────────
+# Placeholders (all available):
+#   {ts}        timestamp           2026-10-05 07:42:02
+#   {country}   country code        RU / US / ??
+#   {ip}        client IP           212.15.62.185
+#   {duration}  download time       45s / 2m 40s / 1h 2m 5s
+#   {speed}     speed               "3.58 MB/s" or "—"
+#   {filename}  filename            example-file.zip
+#   {uri}       full URI            /download/example-file.zip
+#   {size}      response size, B    12345678
+#   {status}    HTTP status         200
+#   {ua_tag}    UA tag              UPD1.2 / PSH / (empty)
+#
+# Format specifiers work: {ip:<16}, {country:>3}, {ua_tag:<9}.
+output_format = "{ts}  {country:>3}  {ip:<16}  {filename}"
+
+
+# ─── Filename transformation (optional) ────────────────────────────────────
+# Shorten long filenames via regex.
+#
+#   mode = "full"   → use basename as-is, ignore pattern/result
+#   mode = "short"  → apply pattern to basename; on match, substitute
+#                     groups into result; on no-match, fall back to full name
+#
+# Backslashes must be doubled in TOML: \\d, \\. instead of \d, \.
+#
+# For filenames like IW4x_Update_r5154_rawfiles_v0.2.36.exe:
+#   pattern = "r(\\d+)_rawfiles_(v[\\d.]+)\\.exe"
+#   result  = "{1}_{2}"       → "r5154_v0.2.36"
+[filename_transform]
+mode = "full"

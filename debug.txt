@@ -1,0 +1,115 @@
+GPCORE Log Reader — отладка и обслуживание
+
+─── Профили ───────────────────────────────────────────────────────
+
+  Список доступных профилей:
+    python3 /opt/log_reader/caddy_filter.py --list
+
+  Справка по CLI:
+    python3 /opt/log_reader/caddy_filter.py --help
+
+  Посмотреть конфиг:
+    cat /opt/log_reader/profiles/gpfav.toml
+    cat /opt/log_reader/profiles/iwpack.toml   ← на ns1
+
+  Проверить валидность TOML:
+    python3 -c "import tomli; print(tomli.load(open('/opt/log_reader/profiles/gpfav.toml','rb')))"
+
+─── Cron ──────────────────────────────────────────────────────────
+
+  crontab -l                                список задач cron
+  systemctl status cron                     статус демона cron
+  journalctl -u cron --since "1 hour ago"   логи демона cron
+  tail -f /opt/log_reader/log/gpfav_cron.log    живой хвост вывода фильтра
+
+─── Тест фильтра ──────────────────────────────────────────────────
+
+  Ручной прогон (обычная оболочка):
+    python3 /opt/log_reader/caddy_filter.py --profile gpfav
+
+  Тест в окружении cron:
+    env -i HOME=$HOME PATH=/usr/bin:/bin \
+      /usr/bin/python3 /opt/log_reader/caddy_filter.py --profile gpfav
+
+  Проверка зависимостей:
+    python3 -c "import geoip2; print('geoip2 OK')"
+    python3 -c "import tomli; print('tomli OK')"
+
+  Временная отладка в терминале (отключить перенаправление в cron.log):
+    Открыть profiles/gpfav.toml, поставить cron_log = ""
+    Запустить вручную, потом вернуть обратно.
+
+─── Проверка доступа к логу Caddy ─────────────────────────────────
+
+  sudo -u kn cat /var/log/caddy/access.log | head
+  getfacl /var/log/caddy/access.log | grep kn
+  ls -la /var/log/caddy/
+
+─── Logrotate ─────────────────────────────────────────────────────
+
+  systemctl list-timers | grep logrotate
+  cat /var/lib/logrotate/status | grep log_reader
+  sudo logrotate -d /etc/logrotate.d/log-reader     dry-run
+  sudo logrotate -f /etc/logrotate.d/log-reader     принудительно
+
+─── Состояние файлов ──────────────────────────────────────────────
+
+  ls -la /opt/log_reader/
+  du -sh /opt/log_reader/*
+  wc -l /opt/log_reader/log/gpfav_dl.log /opt/log_reader/log/bots_gpcore.ru.log
+  cat /opt/log_reader/state/gpfav_filter_offset
+  cat /opt/log_reader/state/gpfav_filter_stats.json
+  cat /opt/log_reader/state/gpfav_bots_cache.json
+
+─── Проверка конкретного IP ───────────────────────────────────────
+
+  Обратный DNS:
+    host 66.249.81.135
+
+  Forward-confirm:
+    host google-proxy-66-249-81-135.google.com
+
+  User-Agent этого IP в логе Caddy:
+    grep '"remote_ip":"66.249.81.135"' /var/log/caddy/access.log | \
+      grep -o '"User-Agent":\["[^"]*"' | sort -u
+
+─── Обслуживание GeoLite2 ─────────────────────────────────────────
+
+  ls -lh /opt/log_reader/GeoLite2-City.mmdb
+  stat /opt/log_reader/GeoLite2-City.mmdb
+
+  Форсировать перекачку:
+    rm /opt/log_reader/GeoLite2-City.mmdb
+    python3 /opt/log_reader/caddy_filter.py --profile gpfav
+
+  Симулировать устаревание:
+    touch -d "40 days ago" /opt/log_reader/GeoLite2-City.mmdb
+    python3 /opt/log_reader/caddy_filter.py --profile gpfav
+
+─── Полный сброс ──────────────────────────────────────────────────
+
+  Быстро:
+    /opt/log_reader/reset.sh --profile gpfav
+
+  Ручной эквивалент:
+    rm -f /opt/log_reader/state/gpfav_filter_offset
+    rm -f /opt/log_reader/state/gpfav_filter_stats.json
+    rm -f /opt/log_reader/state/gpfav_bots_cache.json
+    > /opt/log_reader/log/gpfav_dl.log
+    > /opt/log_reader/log/bots_gpcore.ru.log
+    python3 /opt/log_reader/caddy_filter.py --profile gpfav
+
+─── Резервная копия ───────────────────────────────────────────────
+
+  Создать:
+    dl-backup
+
+  Ручной эквивалент:
+    mkdir -p /opt/log_reader/backup
+    tar --zstd --exclude='GeoLite2-City.mmdb' --exclude='opt/log_reader/backup' \
+        --exclude='opt/log_reader/gpfav_cron.log' \
+        -cf /opt/log_reader/backup/log_reader_$(date +%F).tar.zst \
+        -C / opt/log_reader/
+
+  Содержимое архива:
+    tar --zstd -tf /opt/log_reader/backup/log_reader_$(date +%F).tar.zst

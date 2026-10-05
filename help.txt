@@ -1,0 +1,35 @@
+GPCORE Log Reader — команды (алиасы)
+
+Профили:
+  gpfav     GPCORE favourites (gpcore.ru)
+  iwpack    IW4x Updater      (ns1.gpcore.ru)   ← на другом хосте
+
+Основные:
+  dl-fav          Последние 50 записей лога загрузок (gpfav)
+  dl-fav-all      Весь лог загрузок (gpfav)
+  dl-stats        Сводная статистика (gpfav)
+  dl-filter       Ручной прогон фильтра (gpfav)
+  dl-cron         Последние 20 строк cron-лога (gpfav)
+
+Боты:
+  dl-bots         Последние 50 записей лога ботов (gpfav)
+  dl-bots-all     Весь лог ботов (gpfav)
+  dl-bots-count   Только количество записей в логе ботов (gpfav)
+
+Управление:
+  dl-fullreset    Полный сброс gpfav с пересборкой из access.log
+  dl-backup       Бэкап всей директории /opt/log_reader/
+  dl-help         Эта справка
+  dl-debug        Расширенная справка: отладка, диагностика, обслуживание
+
+Ручные команды (без алиасов):
+  python3 /opt/log_reader/caddy_filter.py --list
+  python3 /opt/log_reader/caddy_filter.py --profile gpfav
+  python3 /opt/log_reader/stats.py --profile gpfav
+  python3 /opt/log_reader/bots_view.py /opt/log_reader/log/bots_gpcore.ru.log
+
+Файлы (кратко):
+  /opt/log_reader/log/gpfav_dl.log              лог загрузок gpfav
+  /opt/log_reader/log/bots_gpcore.ru.log        лог верифицированных ботов
+  /opt/log_reader/log/gpfav_cron.log            вывод cron-задач
+  /opt/log_reader/profiles/*.toml           конфиги профилей
