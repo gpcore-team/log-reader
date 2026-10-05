@@ -147,6 +147,35 @@ For a file `IW4x_Update_r5154_rawfiles_v0.2.36.exe` the result is `r5154_v0.2.36
 
 If `mode = "full"` or the pattern doesn't match — the basename is used as-is.
 
+### Rebuilding the log after format changes
+
+`caddy_filter.py` works incrementally and **does not rewrite** existing
+records in `output_log`. Changes to output format apply only to **new**
+lines. If you modify any of these keys in a profile, rebuild the log to
+apply changes to historical records:
+
+- `number_lines` — enable/disable line numbering
+- `output_format` — column order or composition
+- `filename_transform` — new regex or `mode` switch
+- `keywords` — expand or narrow the filter
+
+Rebuild with:
+
+    /opt/log_reader/reset.sh --profile <name>
+
+Manual equivalent:
+
+    rm -f /opt/log_reader/state/<name>_filter_offset
+    rm -f /opt/log_reader/state/<name>_filter_stats.json
+    rm -f /opt/log_reader/state/<name>_bots_cache.json
+    > /opt/log_reader/log/<name>_dl.log
+    > /opt/log_reader/log/<name>_bots.log
+    python3 /opt/log_reader/caddy_filter.py --profile <name>
+
+**Warning:** rebuild resets line numbers and counters. If you want to
+preserve existing numbers, add new records on top of the current log
+without rebuilding.
+
 ## Usage
 
     # List profiles
